@@ -17,6 +17,7 @@
     - name: Ensure required official packages are installed
       pacman:
         name:
+          - mc
           - htop
           - nload
 #          Related to a kiosk setup and then define user and autologin.
@@ -34,6 +35,7 @@
 # Multimedia
           - vlc
           - audacious
+          - cmus
 # Browser stuff
           - firefox
           - vivaldi
