@@ -1,2 +1,3 @@
 # anarchy-omarchy
-Tweak Omarchy setup for anyone who wants it.
+
+Unscrew some of the opinionated stuff.
