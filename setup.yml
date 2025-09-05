@@ -1,5 +1,5 @@
 ---
-- name: Setup Arch packages and remove a fed
+- name: Setup Arch packages and remove a few
   hosts: localhost
   connection: local
   become: yes
