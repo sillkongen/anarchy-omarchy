@@ -32,6 +32,8 @@
           - vlc
           - audacious
           - vim
+          - vivaldi
+          - vivaldi-ffmpeg-codecs
           - firefox-ublock-origin
           - firefox-dark-reader
           - font-manager
