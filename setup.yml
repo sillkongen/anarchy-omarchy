@@ -1,0 +1,51 @@
+---
+- name: Setup Arch packages and remove a fed
+  hosts: localhost
+  connection: local
+  become: yes
+
+  vars:
+#    autologin_user: user
+#    nfs_server: 10.10.10.10 # CHANGE this to your actual NFS server IP or hostname
+
+  tasks:
+    - name: Fully update the system
+      pacman:
+        update_cache: yes
+        upgrade: yes
+
+    - name: Ensure required official packages are installed
+      pacman:
+        name:
+          - firefox
+          - htop
+          - nload
+#          Related to a kiosk setup and then define user and autologin.
+#          - xfce4
+#          - lightdm
+#          - lightdm-gtk-greeter
+          - base-devel
+          - git
+          - wireguard-tools
+          - nfs-utils
+          - nano
+          - vlc
+          - audacious
+          - vim
+          - firefox-ublock-origin
+          - firefox-dark-reader
+          - font-manager
+          - visual-studio-code-bin
+          - bitwarden
+        state: present
+
+
+    - name: Ensure required official packages are removed
+      pacman:
+        name:
+          - obs-studio
+          - basecamp
+          - hey
+          - obsidian
+          - libreoffice-fresh
+        state: absent
