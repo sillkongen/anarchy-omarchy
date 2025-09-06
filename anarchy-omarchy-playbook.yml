@@ -204,15 +204,6 @@
           - zoxide
         state: present
 
-    - name: Install AUR packages using yay
-      shell: yay -S --noconfirm --needed {{ item }}
-      loop:
-        - 1password-cli
-        - 1password-beta
-        - asdcontrol-git
-      become_user: "{{ omarchy_user }}"
-      ignore_errors: yes
-
     - name: Create omarchy directory structure
       file:
         path: "{{ item }}"
