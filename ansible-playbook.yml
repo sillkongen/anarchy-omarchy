@@ -1,0 +1,627 @@
+---
+- name: Install Omarchy on Arch Linux
+  hosts: localhost
+  connection: local
+  become: yes
+  vars:
+    omarchy_user: "{{ ansible_user }}"
+    omarchy_home: "/home/{{ omarchy_user }}"
+    omarchy_path: "{{ omarchy_home }}/.local/share/omarchy"
+    omarchy_bin_path: "{{ omarchy_path }}/bin"
+    omarchy_config_path: "{{ omarchy_path }}/config"
+    omarchy_themes_path: "{{ omarchy_path }}/themes"
+    omarchy_default_path: "{{ omarchy_path }}/default"
+    
+  tasks:
+    - name: Ensure ansible user has passwordless sudo access
+      lineinfile:
+        path: /etc/sudoers.d/ansible
+        line: "{{ ansible_user }} ALL=(ALL) NOPASSWD:ALL"
+        create: yes
+        mode: '0440'
+        validate: 'visudo -cf %s'
+
+    - name: Configure pacman mirrorlist
+      copy:
+        content: |
+          Server = https://mirror.omarchy.org/$repo/os/$arch
+          Server = https://mirror.rackspace.com/archlinux/$repo/os/$arch
+          Server = https://geo.mirror.pkgbuild.com/$repo/os/$arch
+        dest: /etc/pacman.d/mirrorlist
+        backup: yes
+        mode: '0644'
+
+    - name: Configure pacman.conf
+      copy:
+        content: |
+          # See the pacman.conf(5) manpage for option and repository directives
+
+          [options]
+          Color
+          ILoveCandy
+          VerbosePkgLists
+          HoldPkg = pacman glibc
+          Architecture = auto
+          CheckSpace
+          ParallelDownloads = 5
+          DownloadUser = alpm
+
+          # By default, pacman accepts packages signed by keys that its local keyring
+          # trusts (see pacman-key and its man page), as well as unsigned packages.
+          SigLevel = Required DatabaseOptional
+          LocalFileSigLevel = Optional
+
+          # pacman searches repositories in the order defined here
+          [core]
+          Include = /etc/pacman.d/mirrorlist
+
+          [extra]
+          Include = /etc/pacman.d/mirrorlist
+
+          [multilib]
+          Include = /etc/pacman.d/mirrorlist
+
+          [omarchy]
+          SigLevel = Optional TrustAll
+          Server = https://pkgs.omarchy.org/$arch
+        dest: /etc/pacman.conf
+        backup: yes
+        mode: '0644'
+
+    - name: Update system packages
+      pacman:
+        update_cache: yes
+        upgrade: yes
+
+    - name: Install base packages
+      pacman:
+        name:
+          - 1password-beta
+          - 1password-cli
+          - asdcontrol-git
+          - alacritty
+          - avahi
+          - bash-completion
+          - bat
+          - blueberry
+          - brightnessctl
+          - btop
+          - cargo
+          - clang
+          - cups
+          - cups-browsed
+          - cups-filters
+          - cups-pdf
+          - docker
+          - docker-buildx
+          - docker-compose
+          - dust
+          - evince
+          - eza
+          - fastfetch
+          - fcitx5
+          - fcitx5-gtk
+          - fcitx5-qt
+          - fd
+          - ffmpegthumbnailer
+          - fontconfig
+          - fzf
+          - gcc14
+          - github-cli
+          - gnome-calculator
+          - gnome-keyring
+          - gnome-themes-extra
+          - gum
+          - gvfs-mtp
+          - gvfs-smb
+          - hypridle
+          - hyprland
+          - hyprland-qtutils
+          - hyprlock
+          - hyprpicker
+          - hyprshot
+          - hyprsunset
+          - imagemagick
+          - impala
+          - imv
+          - inetutils
+          - iwd
+          - jq
+          - kdenlive
+          - kvantum-qt5
+          - lazydocker
+          - lazygit
+          - less
+          - libqalculate
+          - libreoffice
+          - llvm
+          - localsend
+          - luarocks
+          - mako
+          - man
+          - mariadb-libs
+          - mise
+          - mpv
+          - nautilus
+          - noto-fonts
+          - noto-fonts-cjk
+          - noto-fonts-emoji
+          - noto-fonts-extra
+          - nss-mdns
+          - nvim
+          - obs-studio
+          - obsidian
+          - omarchy-chromium
+          - pamixer
+          - pinta
+          - playerctl
+          - plocate
+          - plymouth
+          - polkit-gnome
+          - postgresql-libs
+          - power-profiles-daemon
+          - python-gobject
+          - python-poetry-core
+          - python-terminaltexteffects
+          - qt5-wayland
+          - ripgrep
+          - satty
+          - signal-desktop
+          - slurp
+          - spotify
+          - starship
+          - sushi
+          - swaybg
+          - swayosd
+          - system-config-printer
+          - tldr
+          - tree-sitter-cli
+          - ttf-cascadia-mono-nerd
+          - ttf-ia-writer
+          - ttf-jetbrains-mono-nerd
+          - typora
+          - tzupdate
+          - ufw
+          - ufw-docker
+          - unzip
+          - uwsm
+          - walker-bin
+          - waybar
+          - wf-recorder
+          - whois
+          - wiremix
+          - wireplumber
+          - wl-clip-persist
+          - wl-clipboard
+          - wl-screenrec
+          - woff2-font-awesome
+          - xdg-desktop-portal-gtk
+          - xdg-desktop-portal-hyprland
+          - xmlstarlet
+          - xournalpp
+          - yaru-icon-theme
+          - yay
+          - zoxide
+        state: present
+
+    - name: Install AUR packages using yay
+      shell: yay -S --noconfirm --needed {{ item }}
+      loop:
+        - 1password-cli
+        - 1password-beta
+        - asdcontrol-git
+      become_user: "{{ omarchy_user }}"
+      ignore_errors: yes
+
+    - name: Create omarchy directory structure
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ omarchy_user }}"
+        group: "{{ omarchy_user }}"
+        mode: '0755'
+      loop:
+        - "{{ omarchy_path }}"
+        - "{{ omarchy_bin_path }}"
+        - "{{ omarchy_config_path }}"
+        - "{{ omarchy_themes_path }}"
+        - "{{ omarchy_default_path }}"
+        - "{{ omarchy_home }}/.config"
+        - "{{ omarchy_home }}/.local/share/applications"
+        - "{{ omarchy_home }}/.local/share/applications/icons"
+        - "{{ omarchy_home }}/.local/share/fonts"
+        - "{{ omarchy_home }}/.config/omarchy"
+        - "{{ omarchy_home }}/.config/omarchy/themes"
+        - "{{ omarchy_home }}/.config/omarchy/current"
+        - "{{ omarchy_home }}/.config/omarchy/branding"
+        - "{{ omarchy_home }}/.config/btop/themes"
+        - "{{ omarchy_home }}/.config/mako"
+
+    - name: Copy configuration files
+      copy:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        owner: "{{ omarchy_user }}"
+        group: "{{ omarchy_user }}"
+        mode: '0644'
+      loop:
+        - { src: "config/", dest: "{{ omarchy_config_path }}/" }
+        - { src: "default/", dest: "{{ omarchy_default_path }}/" }
+        - { src: "themes/", dest: "{{ omarchy_themes_path }}/" }
+
+    - name: Copy binary scripts
+      copy:
+        src: "bin/{{ item }}"
+        dest: "{{ omarchy_bin_path }}/{{ item }}"
+        owner: "{{ omarchy_user }}"
+        group: "{{ omarchy_user }}"
+        mode: '0755'
+      loop: "{{ lookup('fileglob', 'bin/*', wantlist=True) | map('basename') }}"
+
+    - name: Copy application desktop files
+      copy:
+        src: "applications/{{ item }}"
+        dest: "{{ omarchy_home }}/.local/share/applications/{{ item }}"
+        owner: "{{ omarchy_user }}"
+        group: "{{ omarchy_user }}"
+        mode: '0755'
+      loop: "{{ lookup('fileglob', 'applications/*.desktop', wantlist=True) | map('basename') }}"
+
+    - name: Copy application icons
+      copy:
+        src: "applications/icons/{{ item }}"
+        dest: "{{ omarchy_home }}/.local/share/applications/icons/{{ item }}"
+        owner: "{{ omarchy_user }}"
+        group: "{{ omarchy_user }}"
+        mode: '0644'
+      loop: "{{ lookup('fileglob', 'applications/icons/*', wantlist=True) | map('basename') }}"
+
+    - name: Copy branding files
+      copy:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        owner: "{{ omarchy_user }}"
+        group: "{{ omarchy_user }}"
+        mode: '0644'
+      loop:
+        - { src: "icon.txt", dest: "{{ omarchy_home }}/.config/omarchy/branding/about.txt" }
+        - { src: "logo.txt", dest: "{{ omarchy_home }}/.config/omarchy/branding/screensaver.txt" }
+
+    - name: Copy custom font
+      copy:
+        src: "{{ omarchy_config_path }}/omarchy.ttf"
+        dest: "{{ omarchy_home }}/.local/share/fonts/omarchy.ttf"
+        owner: "{{ omarchy_user }}"
+        group: "{{ omarchy_user }}"
+        mode: '0644'
+
+    - name: Update font cache
+      command: fc-cache
+      become_user: "{{ omarchy_user }}"
+
+    - name: Create additional config directories
+      file:
+        path: "{{ omarchy_home }}/.config/{{ item }}"
+        state: directory
+        owner: "{{ omarchy_user }}"
+        group: "{{ omarchy_user }}"
+        mode: '0755'
+      loop:
+        - "alacritty"
+        - "environment.d"
+        - "fontconfig"
+        - "fcitx5/conf"
+        - "lazygit"
+
+    - name: Copy individual config files
+      copy:
+        src: "{{ omarchy_config_path }}/{{ item.src }}"
+        dest: "{{ omarchy_home }}/.config/{{ item.dest }}"
+        owner: "{{ omarchy_user }}"
+        group: "{{ omarchy_user }}"
+        mode: '0644'
+      loop:
+        - { src: "alacritty/alacritty.toml", dest: "alacritty/alacritty.toml" }
+        - { src: "btop/btop.conf", dest: "btop/btop.conf" }
+        - { src: "chromium-flags.conf", dest: "chromium-flags.conf" }
+        - { src: "brave-flags.conf", dest: "brave-flags.conf" }
+        - { src: "environment.d/fcitx.conf", dest: "environment.d/fcitx.conf" }
+        - { src: "fontconfig/fonts.conf", dest: "fontconfig/fonts.conf" }
+        - { src: "fcitx5/conf/xcb.conf", dest: "fcitx5/conf/xcb.conf" }
+        - { src: "lazygit/config.yml", dest: "lazygit/config.yml" }
+        - { src: "starship.toml", dest: "starship.toml" }
+
+    - name: Copy config directories
+      copy:
+        src: "{{ omarchy_config_path }}/{{ item }}/"
+        dest: "{{ omarchy_home }}/.config/{{ item }}/"
+        owner: "{{ omarchy_user }}"
+        group: "{{ omarchy_user }}"
+        mode: '0644'
+      loop:
+        - "hypr"
+        - "swayosd"
+        - "systemd"
+        - "Typora"
+        - "uwsm"
+        - "walker"
+        - "waybar"
+        - "xournalpp"
+        - "nvim"
+
+    - name: Copy default bashrc
+      copy:
+        src: "{{ omarchy_default_path }}/bashrc"
+        dest: "{{ omarchy_home }}/.bashrc"
+        owner: "{{ omarchy_user }}"
+        group: "{{ omarchy_user }}"
+        mode: '0644'
+
+    - name: Set up theme links
+      shell: |
+        for theme in {{ omarchy_themes_path }}/*; do
+          if [ -d "$theme" ]; then
+            theme_name=$(basename "$theme")
+            ln -sf "$theme" "{{ omarchy_home }}/.config/omarchy/themes/$theme_name"
+          fi
+        done
+      become_user: "{{ omarchy_user }}"
+      ignore_errors: yes
+
+    - name: Set initial theme
+      file:
+        src: "{{ omarchy_home }}/.config/omarchy/themes/tokyo-night"
+        dest: "{{ omarchy_home }}/.config/omarchy/current/theme"
+        state: link
+        owner: "{{ omarchy_user }}"
+        group: "{{ omarchy_user }}"
+      ignore_errors: yes
+
+    - name: Set theme background
+      file:
+        src: "{{ omarchy_home }}/.config/omarchy/current/theme/backgrounds/1-scenery-pink-lakeside-sunset-lake-landscape-scenic-panorama-7680x3215-144.png"
+        dest: "{{ omarchy_home }}/.config/omarchy/current/background"
+        state: link
+        owner: "{{ omarchy_user }}"
+        group: "{{ omarchy_user }}"
+      ignore_errors: yes
+
+    - name: Set up theme-specific app links
+      shell: |
+        # Remove existing files if they exist and create symlinks
+        rm -f "{{ omarchy_home }}/.config/nvim/lua/plugins/theme.lua"
+        rm -f "{{ omarchy_home }}/.config/btop/themes/current.theme"
+        rm -f "{{ omarchy_home }}/.config/mako/config"
+        
+        # Create symlinks
+        ln -sf "{{ omarchy_home }}/.config/omarchy/current/theme/neovim.lua" "{{ omarchy_home }}/.config/nvim/lua/plugins/theme.lua"
+        ln -sf "{{ omarchy_home }}/.config/omarchy/current/theme/btop.theme" "{{ omarchy_home }}/.config/btop/themes/current.theme"
+        ln -sf "{{ omarchy_home }}/.config/omarchy/current/theme/mako.ini" "{{ omarchy_home }}/.config/mako/config"
+      become_user: "{{ omarchy_user }}"
+      ignore_errors: yes
+
+    - name: Add omarchy bin to PATH
+      lineinfile:
+        path: "{{ omarchy_home }}/.bashrc"
+        line: 'export PATH="$HOME/.local/share/omarchy/bin:$PATH"'
+        create: yes
+        owner: "{{ omarchy_user }}"
+        group: "{{ omarchy_user }}"
+
+    - name: Set up web applications
+      shell: |
+        {{ omarchy_bin_path }}/omarchy-webapp-install "HEY" https://app.hey.com https://www.hey.com/assets/images/general/hey.png
+        {{ omarchy_bin_path }}/omarchy-webapp-install "Basecamp" https://launchpad.37signals.com https://basecamp.com/assets/images/general/basecamp.png
+        {{ omarchy_bin_path }}/omarchy-webapp-install "WhatsApp" https://web.whatsapp.com/ https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/whatsapp.png
+        {{ omarchy_bin_path }}/omarchy-webapp-install "Google Photos" https://photos.google.com/ https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/google-photos.png
+        {{ omarchy_bin_path }}/omarchy-webapp-install "Google Contacts" https://contacts.google.com/ https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/google-contacts.png
+        {{ omarchy_bin_path }}/omarchy-webapp-install "Google Messages" https://messages.google.com/web/conversations https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/google-messages.png
+        {{ omarchy_bin_path }}/omarchy-webapp-install "ChatGPT" https://chatgpt.com/ https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/chatgpt.png
+        {{ omarchy_bin_path }}/omarchy-webapp-install "YouTube" https://youtube.com/ https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/youtube.png
+        {{ omarchy_bin_path }}/omarchy-webapp-install "GitHub" https://github.com/ https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/github-light.png
+        {{ omarchy_bin_path }}/omarchy-webapp-install "X" https://x.com/ https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/x-light.png
+        {{ omarchy_bin_path }}/omarchy-webapp-install "Figma" https://figma.com/ https://www.veryicon.com/download/png/application/app-icon-7/figma-1?s=256
+        {{ omarchy_bin_path }}/omarchy-webapp-install "Discord" https://discord.com/channels/@me https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/discord.png
+        {{ omarchy_bin_path }}/omarchy-webapp-install "Zoom" https://app.zoom.us/wc/home https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/zoom.png
+      become_user: "{{ omarchy_user }}"
+
+    - name: Configure GTK theme
+      shell: |
+        gsettings set org.gnome.desktop.interface gtk-theme "Adwaita-dark"
+        gsettings set org.gnome.desktop.interface color-scheme "prefer-dark"
+        gsettings set org.gnome.desktop.interface icon-theme "Yaru-blue"
+      become_user: "{{ omarchy_user }}"
+
+    - name: Set up Nautilus action icons
+      file:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        state: link
+        force: yes
+      loop:
+        - { src: "/usr/share/icons/Adwaita/symbolic/actions/go-previous-symbolic.svg", dest: "/usr/share/icons/Yaru/scalable/actions/go-previous-symbolic.svg" }
+        - { src: "/usr/share/icons/Adwaita/symbolic/actions/go-next-symbolic.svg", dest: "/usr/share/icons/Yaru/scalable/actions/go-next-symbolic.svg" }
+
+    - name: Update GTK icon cache
+      command: gtk-update-icon-cache /usr/share/icons/Yaru
+
+    - name: Enable and start Docker service
+      systemd:
+        name: docker
+        enabled: yes
+        state: started
+
+    - name: Add user to required groups
+      user:
+        name: "{{ omarchy_user }}"
+        groups: docker,audio,video,input,render
+        append: yes
+
+    - name: Enable and start UFW firewall
+      systemd:
+        name: ufw
+        enabled: yes
+        state: started
+
+    - name: Enable and start Avahi service
+      systemd:
+        name: avahi-daemon
+        enabled: yes
+        state: started
+
+    - name: Enable and start CUPS service
+      systemd:
+        name: cups
+        enabled: yes
+        state: started
+
+    - name: Enable and start IWD service
+      systemd:
+        name: iwd
+        enabled: yes
+        state: started
+
+    - name: Note WirePlumber is not a systemd service
+      debug:
+        msg: "WirePlumber runs as a user service and doesn't need to be started via systemd"
+
+    - name: Enable and start Power Profiles daemon
+      systemd:
+        name: power-profiles-daemon
+        enabled: yes
+        state: started
+      ignore_errors: yes
+
+    - name: Note Plymouth service not available
+      debug:
+        msg: "Plymouth service is not available on this system"
+
+    - name: Refresh Hyprland configuration
+      shell: "PATH={{ omarchy_bin_path }}:$PATH {{ omarchy_bin_path }}/omarchy-refresh-hyprland"
+      become_user: "{{ omarchy_user }}"
+      ignore_errors: yes
+
+    - name: Refresh Waybar configuration
+      shell: "PATH={{ omarchy_bin_path }}:$PATH {{ omarchy_bin_path }}/omarchy-refresh-waybar"
+      become_user: "{{ omarchy_user }}"
+      ignore_errors: yes
+
+    - name: Refresh SwayOSD configuration
+      shell: "PATH={{ omarchy_bin_path }}:$PATH {{ omarchy_bin_path }}/omarchy-refresh-swayosd"
+      become_user: "{{ omarchy_user }}"
+      ignore_errors: yes
+
+    - name: Refresh Walker configuration
+      shell: "PATH={{ omarchy_bin_path }}:$PATH {{ omarchy_bin_path }}/omarchy-refresh-walker"
+      become_user: "{{ omarchy_user }}"
+      ignore_errors: yes
+
+    - name: Refresh Fastfetch configuration
+      shell: "PATH={{ omarchy_bin_path }}:$PATH {{ omarchy_bin_path }}/omarchy-refresh-fastfetch"
+      become_user: "{{ omarchy_user }}"
+      ignore_errors: yes
+      register: fastfetch_result
+      failed_when: false
+
+    - name: Fastfetch refresh status
+      debug:
+        msg: "Fastfetch configuration refreshed (or skipped if not available)"
+      when: fastfetch_result.rc != 0
+
+    - name: Update package database
+      command: updatedb
+
+    - name: Install display manager
+      pacman:
+        name:
+          - sddm
+        state: present
+
+    - name: Enable SDDM display manager
+      systemd:
+        name: sddm
+        enabled: yes
+        state: started
+
+    - name: Configure SDDM theme
+      copy:
+        content: |
+          [General]
+          DisplayServer=wayland
+          GreeterEnvironment=QT_WAYLAND_SHELL_INTEGRATION=layer-shell
+          
+          [Theme]
+          Current=breeze
+          
+          [Users]
+          HideShells=/bin/false,/usr/bin/nologin
+        dest: /etc/sddm.conf
+        mode: '0644'
+
+    - name: Create xsessions directory
+      file:
+        path: /usr/share/xsessions
+        state: directory
+        mode: '0755'
+
+    - name: Create Hyprland desktop entry
+      copy:
+        content: |
+          [Desktop Entry]
+          Name=Hyprland
+          Comment=An intelligent dynamic tiling Wayland compositor
+          Exec=Hyprland
+          Type=Application
+          Icon=hyprland
+        dest: /usr/share/xsessions/hyprland.desktop
+        mode: '0644'
+
+    - name: Create user Hyprland desktop entry
+      copy:
+        content: |
+          [Desktop Entry]
+          Name=Hyprland
+          Comment=An intelligent dynamic tiling Wayland compositor
+          Exec=Hyprland
+          Type=Application
+          Icon=hyprland
+        dest: "{{ omarchy_home }}/.local/share/applications/hyprland.desktop"
+        owner: "{{ omarchy_user }}"
+        group: "{{ omarchy_user }}"
+        mode: '0644'
+
+    - name: Set Hyprland as default session
+      lineinfile:
+        path: "{{ omarchy_home }}/.xprofile"
+        line: "exec Hyprland"
+        create: yes
+        owner: "{{ omarchy_user }}"
+        group: "{{ omarchy_user }}"
+
+    - name: Create .xinitrc for Hyprland
+      copy:
+        content: "exec Hyprland"
+        dest: "{{ omarchy_home }}/.xinitrc"
+        owner: "{{ omarchy_user }}"
+        group: "{{ omarchy_user }}"
+        mode: '0644'
+
+    - name: Show completion message
+      shell: "{{ omarchy_bin_path }}/omarchy-show-done"
+      become_user: "{{ omarchy_user }}"
+      ignore_errors: yes
+      register: completion_result
+      failed_when: false
+
+    - name: Installation completed successfully
+      debug:
+        msg: |
+          - Omarchy installation completed successfully!
+            - All packages installed
+            - Configuration files deployed
+            - Services started
+            - Display manager configured
+            - Hyprland ready to use
+          
+          Reboot your system to see the login screen and start using Omarchy!
+      when: completion_result.rc != 0

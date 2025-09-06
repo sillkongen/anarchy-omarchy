@@ -1,0 +1,7 @@
+---
+# Ansible requirements for Omarchy installation
+collections:
+  - name: community.general
+    version: ">=3.0.0"
+  - name: ansible.posix
+    version: ">=1.0.0"
