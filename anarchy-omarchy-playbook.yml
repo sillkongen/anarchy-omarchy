@@ -338,7 +338,17 @@
         - "walker"
         - "waybar"
         - "xournalpp"
-        - "nvim"
+
+    - name: Set up LazyVim configuration
+      shell: |
+        if [[ ! -d "{{ omarchy_home }}/.config/nvim" ]]; then
+          git clone https://github.com/LazyVim/starter "{{ omarchy_home }}/.config/nvim"
+          cp -R "{{ omarchy_config_path }}/nvim/*" "{{ omarchy_home }}/.config/nvim/"
+          rm -rf "{{ omarchy_home }}/.config/nvim/.git"
+          echo "vim.opt.relativenumber = false" >> "{{ omarchy_home }}/.config/nvim/lua/config/options.lua"
+        fi
+      become_user: "{{ omarchy_user }}"
+      ignore_errors: yes
 
     - name: Copy default bashrc
       copy:
